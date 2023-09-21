@@ -22,6 +22,12 @@ inputs:
   disable-nix-access-token: # 'true' or 'false'
     description: 'Disable configuration of nix access-tokens with the GitHub token used in the workflow'
     default: 'false'
+  nix-init: # 'none' or 'systemd'
+    description: 'The init system used by nix-installer'
+    default: 'none'
+  nix-planner: # 'linux' or 'macos'
+    description: 'The installation planner used by the nix-installer'
+    default: 'none'
 
 runs:
   using: "composite"
@@ -115,7 +121,10 @@ runs:
       uses: DeterminateSystems/nix-installer-action@v4
       with:
         logger: pretty
-        extra-conf: experimental-features = ca-derivations fetch-closure
+        extra-conf: |
+          experimental-features = ca-derivations fetch-closure
+        init: ${{ inputs.nix-init }}
+        planner: ${{ inputs.nix-planner }}
 
     - name: Mount nix store cache
       if: inputs.enable-cache == 'true'
@@ -133,5 +142,8 @@ runs:
 
     - name: Install devbox packages
       shell: bash
+      env:
+        DEVBOX_DEBUG: '1'
       run: |
+        sudo chown --recursive `whoami` /nix
         devbox run --config=${{ inputs.project-path }} -- echo "Packages installed!"
